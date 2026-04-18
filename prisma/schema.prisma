@@ -1,13 +1,452 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+}
+
+// ============================================================
+// USERS
+// ============================================================
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("member") // 'owner' | 'member'
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  feedback    IdeaFeedback[]
+  goldenRules GoldenRule[]
+  patterns    FeedbackPattern[]
+  chatThreads ChatThread[]
+  annotations Annotation[]
+  activities  ActivityLog[]
+
+  @@map("users")
+}
+
+// ============================================================
+// IDEAS
+// ============================================================
+
+model Idea {
+  id               String  @id @default(uuid()) @db.Uuid
+  title            String
+  slug             String  @unique
+  summary          String
+  detailedAnalysis String? @map("detailed_analysis")
+
+  // STATUS
+  status String @default("detected") // detected, reviewing, approved, declined, incubating, archived, starred
+
+  // SCORING (5 dimensions, each 0-100)
+  compositeScore       Float @default(0) @map("composite_score")
+  trendScore           Float @default(0) @map("trend_score")
+  demandScore          Float @default(0) @map("demand_score")
+  competitionScore     Float @default(0) @map("competition_score")
+  feasibilityScore     Float @default(0) @map("feasibility_score")
+  revenuePotentialScore Float @default(0) @map("revenue_potential_score")
+  confidenceScore      Float @default(0) @map("confidence_score")
+  priorityScore        Float @default(0) @map("priority_score")
+
+  // CATEGORIZATION
+  category        String // ebook, course, template, calculator, saas_tool, ai_app, membership, printable, tracker, community, coaching, other
+  subcategory     String?
+  peptideTopics   String[] @map("peptide_topics")
+  productType     String[] @map("product_type")
+  subNiche        String[] @map("sub_niche")
+  targetAudience  String?  @map("target_audience")
+  opportunityType String?  @map("opportunity_type") // proven_model, gap_opportunity, emerging_trend, first_mover, improvement
+
+  // TREND & MARKET DATA
+  googleTrendsScore     Int?    @map("google_trends_score")
+  googleTrendsDirection String? @map("google_trends_direction") // rising, stable, declining, breakout
+  redditMentionCount    Int     @default(0) @map("reddit_mention_count")
+  redditQuestionCount   Int     @default(0) @map("reddit_question_count")
+  youtubeVideoCount     Int     @default(0) @map("youtube_video_count")
+  youtubeAvgViews       Int     @default(0) @map("youtube_avg_views")
+  forumMentionCount     Int     @default(0) @map("forum_mention_count")
+  etsyCompetitorCount   Int     @default(0) @map("etsy_competitor_count")
+  etsyAvgPrice          Float?  @map("etsy_avg_price")
+  etsyAvgReviews        Int?    @map("etsy_avg_reviews")
+  whopCompetitorCount   Int     @default(0) @map("whop_competitor_count")
+  searchVolumeMonthly   Int?    @map("search_volume_monthly")
+
+  // COMPETITIVE INTELLIGENCE
+  existingProducts     Json    @default("[]") @map("existing_products")
+  competitorAnalysis   String? @map("competitor_analysis")
+  competitorGaps       String? @map("competitor_gaps")
+  differentiationNotes String? @map("differentiation_notes")
+
+  // REVENUE ESTIMATION
+  estimatedPriceRange    String? @map("estimated_price_range")
+  estimatedMonthlyRevenue String? @map("estimated_monthly_revenue")
+  effortToBuild          String? @map("effort_to_build") // low, medium, high
+  timeToBuild            String? @map("time_to_build")
+
+  // COMPLIANCE
+  complianceFlag  String  @default("green") @map("compliance_flag") // green, yellow, red
+  complianceNotes String? @map("compliance_notes")
+
+  // EVIDENCE & SOURCES
+  sourceUrls        String[] @map("source_urls")
+  sourcePlatforms   String[] @map("source_platforms")
+  evidenceSnapshot  Json     @default("{}") @map("evidence_snapshot")
+  discoverySource   String?  @map("discovery_source")
+  aiModelUsed       String?  @map("ai_model_used")
+
+  // OPERATOR FEEDBACK
+  operatorNotes String[] @map("operator_notes")
+  declineReason String?  @map("decline_reason")
+  approvalNotes String?  @map("approval_notes")
+
+  // TIMESTAMPS
+  discoveredAt    DateTime  @default(now()) @map("discovered_at")
+  lastDataRefresh DateTime? @map("last_data_refresh")
+  statusChangedAt DateTime? @map("status_changed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // RELATIONS
+  signals     IdeaSignal[]
+  trends      IdeaTrend[]
+  feedback    IdeaFeedback[]
+  chatThreads ChatThread[]
+  annotations Annotation[]
+  tags        IdeaTag[]
+
+  @@index([status])
+  @@index([compositeScore(sort: Desc)])
+  @@index([discoveredAt(sort: Desc)])
+  @@map("ideas")
+}
+
+// ============================================================
+// SIGNALS
+// ============================================================
+
+model IdeaSignal {
+  id             String   @id @default(uuid()) @db.Uuid
+  ideaId         String   @map("idea_id") @db.Uuid
+  signalType     String   @map("signal_type") // google_trend, reddit_post, reddit_comment, youtube_video, etc.
+  sourceUrl      String   @map("source_url")
+  title          String?
+  rawContent     String?  @map("raw_content")
+  contentSummary String?  @map("content_summary")
+  metadata       Json     @default("{}")
+  relevanceScore Float    @default(0) @map("relevance_score")
+  scrapedAt      DateTime @default(now()) @map("scraped_at")
+
+  idea Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  @@index([ideaId])
+  @@map("idea_signals")
+}
+
+model IdeaTrend {
+  id         String   @id @default(uuid()) @db.Uuid
+  ideaId     String   @map("idea_id") @db.Uuid
+  metricType String   @map("metric_type") // google_interest, reddit_mentions, youtube_videos, forum_threads
+  metricValue Float   @map("metric_value")
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  idea Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  @@index([ideaId, recordedAt])
+  @@map("idea_trends")
+}
+
+// ============================================================
+// USER FEEDBACK & LEARNING
+// ============================================================
+
+model IdeaFeedback {
+  id     String   @id @default(uuid()) @db.Uuid
+  ideaId String   @map("idea_id") @db.Uuid
+  userId String   @map("user_id") @db.Uuid
+  action String // approve, decline, star, archive, note, review
+  note   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  idea Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([ideaId])
+  @@index([userId])
+  @@map("idea_feedback")
+}
+
+model GoldenRule {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  ruleType      String   @map("rule_type") // must_have, must_avoid, prefer, deprioritize
+  ruleText      String   @map("rule_text")
+  direction     String   @default("boost") // boost, penalize, block, require
+  weight        Float    @default(1.0)
+  importance    Float    @default(0.5) // 0-1, golden rules = 1.0
+  isActive      Boolean  @default(true) @map("is_active")
+  approved      Boolean  @default(true)
+  source        String   @default("manual") // manual, ai_suggested, learned, conversation, inferred
+  appliedCount  Int      @default(0) @map("applied_count")
+  overrideCount Int      @default(0) @map("override_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+  createdFrom   String?  @map("created_from")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("golden_rules")
+}
+
+model FeedbackPattern {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  patternKey   String   @map("pattern_key")
+  description  String
+  patternType  String   @map("pattern_type") // category_preference, niche_preference, price_preference, etc.
+  confidence   Float    @default(0.5)
+  isActive     Boolean  @default(true) @map("is_active")
+  appliedCount Int      @default(0) @map("applied_count")
+  overrideCount Int     @default(0) @map("override_count")
+  evidence     Json     @default("[]")
+  lastUpdated  DateTime @default(now()) @map("last_updated")
+  derivedFrom  String[] @map("derived_from") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("feedback_patterns")
+}
+
+// ============================================================
+// BRAIN MEMORY
+// ============================================================
+
+model BrainMemory {
+  id            String   @id @default(uuid()) @db.Uuid
+  memoryType    String   @map("memory_type") // golden_rule, general_rule, preference, contextual, conversation_insight
+  content       String
+  source        String? // operator_note, conversation, auto_derived
+  relatedIdeaIds String[] @map("related_idea_ids") @db.Uuid
+  importance    Float    @default(0.5)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("brain_memory")
+}
+
+// ============================================================
+// CHAT / CONVERSATION
+// ============================================================
+
+model ChatThread {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  ideaId      String?  @map("idea_id") @db.Uuid
+  threadType  String   @map("thread_type") // global, idea_specific, comparison, strategy, explore
+  title       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  lastMessageAt DateTime @default(now()) @map("last_message_at")
+
+  user     User          @relation(fields: [userId], references: [id])
+  idea     Idea?         @relation(fields: [ideaId], references: [id])
+  messages ChatMessage[]
+
+  @@map("chat_threads")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  threadId  String   @map("thread_id") @db.Uuid
+  role      String // user, assistant
+  content   String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@map("chat_messages")
+}
+
+// ============================================================
+// SCRAPER STATE & SOURCES
+// ============================================================
+
+model Source {
+  id                    String   @id @default(uuid()) @db.Uuid
+  sourceType            String   @map("source_type") // rss, subreddit, youtube_channel, forum, marketplace, social, news_alert
+  sourceName            String   @map("source_name")
+  sourceUrl             String?  @map("source_url")
+  platform              String // reddit, youtube, google_trends, bhw, etsy, whop, tiktok, twitter, amazon, gumroad, rss, facebook, telegram
+  checkFrequencyHours   Int      @default(4) @map("check_frequency_hours")
+  isActive              Boolean  @default(true) @map("is_active")
+  lastCrawledAt         DateTime? @map("last_crawled_at")
+  errorCount            Int      @default(0) @map("error_count")
+  lastError             String?  @map("last_error")
+  config                Json     @default("{}")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  scraperRuns ScraperRun[]
+
+  @@map("sources")
+}
+
+model ScraperRun {
+  id             String    @id @default(uuid()) @db.Uuid
+  scraperName    String    @map("scraper_name")
+  sourceId       String?   @map("source_id") @db.Uuid
+  query          String?
+  startedAt      DateTime  @default(now()) @map("started_at")
+  completedAt    DateTime? @map("completed_at")
+  status         String    @default("running") // running, completed, failed
+  signalsFound   Int       @default(0) @map("signals_found")
+  ideasGenerated Int       @default(0) @map("ideas_generated")
+  errorLog       String?   @map("error_log")
+
+  source Source? @relation(fields: [sourceId], references: [id])
+
+  @@map("scraper_runs")
+}
+
+// ============================================================
+// COMPETITOR INTELLIGENCE
+// ============================================================
+
+model Competitor {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String
+  platform        String // etsy, whop, gumroad, shopify, udemy, other
+  profileUrl      String?  @map("profile_url")
+  discoveryMethod String   @default("auto") @map("discovery_method") // manual, auto
+  watchPriority   String   @default("normal") @map("watch_priority") // high, normal, low
+  totalProducts   Int      @default(0) @map("total_products")
+  estimatedRevenue String? @map("estimated_revenue")
+  notes           String?
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  products CompetitorProduct[]
+
+  @@map("competitors")
+}
+
+model CompetitorProduct {
+  id            String   @id @default(uuid()) @db.Uuid
+  competitorId  String   @map("competitor_id") @db.Uuid
+  productName   String   @map("product_name")
+  productUrl    String   @map("product_url")
+  price         Float?
+  priceModel    String?  @map("price_model") // one_time, subscription, freemium
+  estimatedSales Int     @default(0) @map("estimated_sales")
+  reviewCount   Int      @default(0) @map("review_count")
+  reviewAvg     Float?   @map("review_avg")
+  description   String?
+  tags          String[]
+  lastChecked   DateTime @default(now()) @map("last_checked")
+  priceHistory  Json     @default("[]") @map("price_history")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@index([competitorId])
+  @@map("competitor_products")
+}
+
+// ============================================================
+// TRENDS & ANALYTICS
+// ============================================================
+
+model TrendSnapshot {
+  id         String   @id @default(uuid()) @db.Uuid
+  keyword    String
+  platform   String // google_trends, reddit, youtube
+  value      Float
+  metadata   Json     @default("{}")
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  @@index([keyword, recordedAt])
+  @@map("trend_snapshots")
+}
+
+// ============================================================
+// NOTIFICATIONS & DIGESTS
+// ============================================================
+
+model Digest {
+  id           String    @id @default(uuid()) @db.Uuid
+  digestType   String    @map("digest_type") // daily, weekly
+  content      String
+  ideasFeatured String[] @map("ideas_featured") @db.Uuid
+  sentAt       DateTime? @map("sent_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("digests")
+}
+
+// ============================================================
+// ANNOTATIONS
+// ============================================================
+
+model Annotation {
+  id             String   @id @default(uuid()) @db.Uuid
+  ideaId         String   @map("idea_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  content        String
+  annotationType String   @default("note") @map("annotation_type") // note, research, concern, action_item
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  idea Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([ideaId])
+  @@map("annotations")
+}
+
+// ============================================================
+// ACTIVITY LOG
+// ============================================================
+
+model ActivityLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String // idea_approved, idea_declined, rule_created, scraper_triggered, etc.
+  entityType String?  @map("entity_type") // idea, rule, competitor, source
+  entityId   String?  @map("entity_id") @db.Uuid
+  details    Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([createdAt(sort: Desc)])
+  @@map("activity_log")
+}
+
+// ============================================================
+// TAGS
+// ============================================================
+
+model Tag {
+  id    String @id @default(uuid()) @db.Uuid
+  name  String @unique
+  color String @default("#6366f1")
+
+  ideas IdeaTag[]
+
+  @@map("tags")
+}
+
+model IdeaTag {
+  ideaId String @map("idea_id") @db.Uuid
+  tagId  String @map("tag_id") @db.Uuid
+
+  idea Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([ideaId, tagId])
+  @@map("idea_tags")
 }
