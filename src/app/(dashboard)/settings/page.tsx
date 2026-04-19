@@ -15,6 +15,7 @@ import {
   FileJson,
   FileSpreadsheet,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -266,7 +267,7 @@ function ApiKeysTab() {
                 variant="outline"
                 size="sm"
                 className="gap-1"
-                onClick={() => alert(`${apiKey.name} saved successfully!`)}
+                onClick={() => toast.success(`${apiKey.name} saved successfully!`)}
               >
                 <Save className="size-3" />
                 Save

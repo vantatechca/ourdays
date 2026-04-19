@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { toast } from "sonner"
 import { User, Mail, Briefcase, Save, Camera, Trash2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,18 +23,18 @@ export default function ProfilePage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const handleSave = () => {
-    alert("Profile updated successfully!")
+    toast.success("Profile updated successfully!")
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith("image/")) {
-      alert("Please upload an image file")
+      toast.error("Please upload an image file")
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image must be under 5MB")
+      toast.error("Image must be under 5MB")
       return
     }
     const reader = new FileReader()

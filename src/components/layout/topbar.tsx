@@ -1,11 +1,12 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { Search, Bell, Settings, Filter, X, Lightbulb, TrendingUp, Users, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { ButtonLink } from "@/components/ui/button-link"
 import { Input } from "@/components/ui/input"
 import { mockIdeas, mockTrends, mockCompetitors } from "@/lib/mock-data"
 import {
@@ -392,10 +393,10 @@ export function Topbar({ sidebarCollapsed, onMobileMenuOpen }: TopbarProps) {
         </div>
 
         {/* Settings */}
-        <Button variant="ghost" size="icon" nativeButton={false} render={<Link href="/settings" />}>
+        <ButtonLink href="/settings" variant="ghost" size="icon">
           <Settings className="size-4" />
           <span className="sr-only">Settings</span>
-        </Button>
+        </ButtonLink>
 
         {/* User Avatar */}
         <div className="relative" ref={profileRef}>
@@ -436,7 +437,7 @@ export function Topbar({ sidebarCollapsed, onMobileMenuOpen }: TopbarProps) {
               <button
                 onClick={() => {
                   setShowProfile(false)
-                  alert("Logged out successfully!")
+                  toast.success("Logged out successfully!")
                 }}
                 className="w-full rounded-md px-2 py-1.5 text-left text-sm text-red-400 hover:bg-accent hover:text-red-300 transition-colors"
               >

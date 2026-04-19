@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { cn } from "@/lib/utils";
 import type { IdeaCardData } from "@/lib/types";
 
@@ -442,16 +443,15 @@ export function IdeaCard({ idea, className }: IdeaCardProps) {
         >
           <Star className={cn("size-3.5", starred && "fill-current")} />
         </Button>
-        <Button
+        <ButtonLink
+          href={`/brain-chat?idea=${idea.slug}`}
           variant="ghost"
           size="icon-xs"
           className="text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
           title="Chat"
-          nativeButton={false}
-          render={<Link href={`/brain-chat?idea=${idea.slug}`} />}
         >
           <MessageSquare className="size-3.5" />
-        </Button>
+        </ButtonLink>
         <Button
           variant="ghost"
           size="icon-xs"
@@ -465,16 +465,15 @@ export function IdeaCard({ idea, className }: IdeaCardProps) {
           <Archive className="size-3.5" />
         </Button>
         <div className="flex-1" />
-        <Button
+        <ButtonLink
+          href={`/ideas/${idea.slug}`}
           variant="ghost"
           size="xs"
           className="gap-1 text-xs text-muted-foreground"
-          nativeButton={false}
-          render={<Link href={`/ideas/${idea.slug}`} />}
         >
           View
           <ArrowUpRight className="size-3" />
-        </Button>
+        </ButtonLink>
       </CardFooter>
     </Card>
   );

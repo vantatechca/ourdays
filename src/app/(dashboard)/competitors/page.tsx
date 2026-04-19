@@ -11,16 +11,17 @@ import {
   ChevronRight,
   BarChart3,
   Package,
-  X,
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Modal } from "@/components/ui/modal";
 import { mockCompetitors } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -216,10 +217,10 @@ export default function CompetitorsPage() {
 
   const handleAddCompetitor = () => {
     if (!newCompetitor.name.trim()) {
-      alert("Please enter a competitor name");
+      toast.error("Please enter a competitor name");
       return;
     }
-    alert(`Competitor "${newCompetitor.name}" added successfully!`);
+    toast.success(`Competitor "${newCompetitor.name}" added successfully!`);
     setNewCompetitor({ name: "", platform: "etsy", profileUrl: "" });
     setShowAddCompetitor(false);
   };
@@ -254,29 +255,18 @@ export default function CompetitorsPage() {
       </div>
 
       {/* Gap Analysis Modal */}
-      {showGapAnalysis && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          onClick={() => setShowGapAnalysis(false)}
-        >
-          <div
-            className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="flex items-center gap-2 text-lg font-semibold">
-                <BarChart3 className="size-5 text-violet-400" />
-                Market Gap Analysis
-              </h2>
-              <button
-                onClick={() => setShowGapAnalysis(false)}
-                className="p-1 rounded hover:bg-accent transition-colors"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-            <Separator className="mb-4" />
-            <div className="space-y-4">
+      <Modal
+        open={showGapAnalysis}
+        onClose={() => setShowGapAnalysis(false)}
+        size="lg"
+        title={
+          <span className="flex items-center gap-2">
+            <BarChart3 className="size-5 text-violet-400" />
+            Market Gap Analysis
+          </span>
+        }
+      >
+        <div className="space-y-4">
               <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
                 <div className="flex items-start gap-2">
                   <TrendingUp className="size-4 text-emerald-400 mt-0.5" />
@@ -329,82 +319,65 @@ export default function CompetitorsPage() {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
         </div>
-      )}
+      </Modal>
 
       {/* Add Competitor Modal */}
-      {showAddCompetitor && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          onClick={() => setShowAddCompetitor(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="flex items-center gap-2 text-lg font-semibold">
-                <Plus className="size-5" />
-                Add Competitor
-              </h2>
-              <button
-                onClick={() => setShowAddCompetitor(false)}
-                className="p-1 rounded hover:bg-accent transition-colors"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-            <Separator className="mb-4" />
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="comp-name" className="text-xs">Name</Label>
-                <Input
-                  id="comp-name"
-                  placeholder="e.g. BiohackPro"
-                  value={newCompetitor.name}
-                  onChange={(e) => setNewCompetitor((prev) => ({ ...prev, name: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="comp-platform" className="text-xs">Platform</Label>
-                <select
-                  id="comp-platform"
-                  value={newCompetitor.platform}
-                  onChange={(e) => setNewCompetitor((prev) => ({ ...prev, platform: e.target.value }))}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="etsy">Etsy</option>
-                  <option value="whop">Whop</option>
-                  <option value="gumroad">Gumroad</option>
-                  <option value="shopify">Shopify</option>
-                  <option value="udemy">Udemy</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="comp-url" className="text-xs">Profile URL</Label>
-                <Input
-                  id="comp-url"
-                  placeholder="https://..."
-                  value={newCompetitor.profileUrl}
-                  onChange={(e) => setNewCompetitor((prev) => ({ ...prev, profileUrl: e.target.value }))}
-                />
-              </div>
-            </div>
-            <Separator className="my-4" />
-            <div className="flex items-center justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowAddCompetitor(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddCompetitor}>
-                Add Competitor
-              </Button>
-            </div>
+      <Modal
+        open={showAddCompetitor}
+        onClose={() => setShowAddCompetitor(false)}
+        title={
+          <span className="flex items-center gap-2">
+            <Plus className="size-5" />
+            Add Competitor
+          </span>
+        }
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowAddCompetitor(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddCompetitor}>Add Competitor</Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="comp-name" className="text-xs">Name</Label>
+            <Input
+              id="comp-name"
+              placeholder="e.g. BiohackPro"
+              value={newCompetitor.name}
+              onChange={(e) => setNewCompetitor((prev) => ({ ...prev, name: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="comp-platform" className="text-xs">Platform</Label>
+            <select
+              id="comp-platform"
+              value={newCompetitor.platform}
+              onChange={(e) => setNewCompetitor((prev) => ({ ...prev, platform: e.target.value }))}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="etsy">Etsy</option>
+              <option value="whop">Whop</option>
+              <option value="gumroad">Gumroad</option>
+              <option value="shopify">Shopify</option>
+              <option value="udemy">Udemy</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="comp-url" className="text-xs">Profile URL</Label>
+            <Input
+              id="comp-url"
+              placeholder="https://..."
+              value={newCompetitor.profileUrl}
+              onChange={(e) => setNewCompetitor((prev) => ({ ...prev, profileUrl: e.target.value }))}
+            />
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Summary Stats */}
       <div className="flex items-center gap-4 text-sm text-muted-foreground">

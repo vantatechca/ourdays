@@ -13,9 +13,10 @@ import {
   ChevronRight,
   Activity,
   RotateCcw,
-  X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
+import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -229,10 +230,10 @@ function AddRuleDialog() {
 
   const handleSave = () => {
     if (!ruleText.trim()) {
-      alert("Please enter rule text");
+      toast.error("Please enter rule text");
       return;
     }
-    alert(`Rule saved: "${ruleText}" (${ruleType} / ${direction})`);
+    toast.success(`Rule saved: "${ruleText}" (${ruleType} / ${direction})`);
     setRuleText("");
     setRuleType("must_have");
     setDirection("boost");
@@ -248,32 +249,19 @@ function AddRuleDialog() {
         Add Rule
       </Button>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between mb-2">
-              <div>
-                <h2 className="text-lg font-semibold">Add Golden Rule</h2>
-                <p className="text-sm text-muted-foreground">
-                  Define a new rule to guide idea scoring and filtering.
-                </p>
-              </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="p-1 rounded hover:bg-accent transition-colors"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-            <Separator className="my-3" />
-
-            <div className="space-y-4 py-2">
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Add Golden Rule"
+        description="Define a new rule to guide idea scoring and filtering."
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave}>Save Rule</Button>
+          </>
+        }
+      >
+        <div className="space-y-4 py-2">
               <div className="space-y-2">
                 <Label>Rule Text</Label>
                 <Input
@@ -344,16 +332,8 @@ function AddRuleDialog() {
                   step={0.1}
                 />
               </div>
-            </div>
-
-            <Separator className="my-3" />
-            <div className="flex items-center justify-end gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave}>Save Rule</Button>
-            </div>
-          </div>
         </div>
-      )}
+      </Modal>
     </>
   );
 }
@@ -392,9 +372,10 @@ export default function RulesPage() {
             variant="outline"
             className="gap-2"
             onClick={() =>
-              alert(
-                "AI is analyzing your recent decisions...\n\nSuggested rules:\n• Prefer products under $25\n• Avoid video-based content\n• Boost first-mover opportunities"
-              )
+              toast.info("AI suggested rules", {
+                description: "Prefer products under $25 • Avoid video-based content • Boost first-mover opportunities",
+                duration: 6000,
+              })
             }
           >
             <Sparkles className="size-4 text-amber-400" />
