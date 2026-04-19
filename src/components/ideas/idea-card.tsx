@@ -187,7 +187,13 @@ interface IdeaCardProps {
 
 export function IdeaCard({ idea, className }: IdeaCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [action, setAction] = useState<"approved" | "declined" | "archived" | null>(null);
+  const [starred, setStarred] = useState(false);
   const days = daysAgo(idea.discoveredAt);
+
+  const handleAction = (newAction: "approved" | "declined" | "archived") => {
+    setAction((prev) => (prev === newAction ? null : newAction));
+  };
 
   return (
     <Card
@@ -403,50 +409,70 @@ export function IdeaCard({ idea, className }: IdeaCardProps) {
         <Button
           variant="ghost"
           size="icon-xs"
-          className="text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+          className={cn(
+            "text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300",
+            action === "approved" && "bg-emerald-500/20 text-emerald-300"
+          )}
           title="Approve"
+          onClick={() => handleAction("approved")}
         >
           <CheckCircle className="size-3.5" />
         </Button>
         <Button
           variant="ghost"
           size="icon-xs"
-          className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+          className={cn(
+            "text-red-400 hover:bg-red-500/10 hover:text-red-300",
+            action === "declined" && "bg-red-500/20 text-red-300"
+          )}
           title="Decline"
+          onClick={() => handleAction("declined")}
         >
           <XCircle className="size-3.5" />
         </Button>
         <Button
           variant="ghost"
           size="icon-xs"
-          className="text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+          className={cn(
+            "text-amber-400 hover:bg-amber-500/10 hover:text-amber-300",
+            starred && "bg-amber-500/20 text-amber-300"
+          )}
           title="Star"
+          onClick={() => setStarred((prev) => !prev)}
         >
-          <Star className="size-3.5" />
+          <Star className={cn("size-3.5", starred && "fill-current")} />
         </Button>
         <Button
           variant="ghost"
           size="icon-xs"
           className="text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
           title="Chat"
+          render={<Link href={`/brain-chat?idea=${idea.slug}`} />}
         >
           <MessageSquare className="size-3.5" />
         </Button>
         <Button
           variant="ghost"
           size="icon-xs"
-          className="text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+          className={cn(
+            "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+            action === "archived" && "bg-muted text-foreground"
+          )}
           title="Archive"
+          onClick={() => handleAction("archived")}
         >
           <Archive className="size-3.5" />
         </Button>
         <div className="flex-1" />
-        <Link href={`/ideas/${idea.slug}`}>
-          <Button variant="ghost" size="xs" className="gap-1 text-xs text-muted-foreground">
-            View
-            <ArrowUpRight className="size-3" />
-          </Button>
-        </Link>
+        <Button
+          variant="ghost"
+          size="xs"
+          className="gap-1 text-xs text-muted-foreground"
+          render={<Link href={`/ideas/${idea.slug}`} />}
+        >
+          View
+          <ArrowUpRight className="size-3" />
+        </Button>
       </CardFooter>
     </Card>
   );

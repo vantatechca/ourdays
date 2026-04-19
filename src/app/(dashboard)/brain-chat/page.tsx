@@ -8,12 +8,15 @@ import {
   Clock,
   Sparkles,
   Slash,
+  Trash2,
+  Search,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { ChatMessage, type ChatMessageData } from "@/components/chat/chat-message"
 
 // --- Mock Conversations ---
@@ -73,7 +76,8 @@ const mockThreads: ConversationThread[] = [
   },
 ]
 
-const mockActiveMessages: ChatMessageData[] = [
+const messagesByThread: Record<string, ChatMessageData[]> = {
+  t1: [
   {
     id: "m1",
     role: "assistant",
@@ -116,7 +120,102 @@ const mockActiveMessages: ChatMessageData[] = [
     content: "Running comparison...\n\n**Retatrutide vs Tirzepatide -- Head to Head:**\n\n| Metric | Retatrutide | Tirzepatide |\n|--------|------------|-------------|\n| Composite Score | 91 | 79 |\n| Trend | 99 (breakout) | 88 (rising) |\n| Competition | 100 (zero) | 55 (crowded) |\n| Feasibility | 72 | 50 |\n| Revenue Potential | 90 | 92 |\n| Time to Build | 2-3 weeks | 4-6 weeks |\n\n**Key insight:** Retatrutide wins on opportunity timing (first-mover), but tirzepatide wins on revenue ceiling (course format, $49.99-$149.99 pricing). However, tirzepatide requires video content creation and you have a rule against products requiring showing your face.\n\n**Bottom line:** Retatrutide is the stronger play for you specifically. The tirzepatide course conflicts with your golden rules. I would deprioritize it.",
     timestamp: "2026-04-14T11:26:00Z",
   },
-]
+  ],
+  t2: [
+    {
+      id: "t2-m1",
+      role: "assistant",
+      content: "Let's talk about the **Semaglutide Dosing Guide** strategy. I've been looking at the market:\n\n- 12,000+ monthly searches for \"semaglutide dosing\"\n- Average competitor price: $19.99\n- Top product has 850 reviews (4.6 stars)\n\nAn interactive visual dosing guide could stand out from the PDF-heavy market.",
+      timestamp: "2026-04-14T07:30:00Z",
+    },
+    {
+      id: "t2-m2",
+      role: "user",
+      content: "What format would work best? PDF or interactive tool?",
+      timestamp: "2026-04-14T07:45:00Z",
+    },
+    {
+      id: "t2-m3",
+      role: "assistant",
+      content: "**Interactive template + calculator** is the winning format. Here's why:\n\n- PDFs are saturated\n- Interactive tools can charge $24.99+ vs $9.99 for PDFs\n- Higher perceived value = better conversion",
+      timestamp: "2026-04-14T07:50:00Z",
+    },
+  ],
+  t3: [
+    {
+      id: "t3-m1",
+      role: "assistant",
+      content: "**Weekly Pipeline Review** -- Week of April 7-13, 2026\n\n**Summary:**\n- 9 new ideas detected\n- 3 scored above 80 (Retatrutide, Semaglutide Guide, BPC-157 Stack)\n- 2 declined (low feasibility)\n- 4 in review",
+      timestamp: "2026-04-13T15:00:00Z",
+    },
+    {
+      id: "t3-m2",
+      role: "user",
+      content: "Show me the top 3 breakdown",
+      timestamp: "2026-04-13T15:30:00Z",
+    },
+    {
+      id: "t3-m3",
+      role: "assistant",
+      content: "**Top 3 This Week:**\n\n1. **Retatrutide Protocol Builder** (91) -- first-mover opportunity\n2. **Semaglutide Dosing Guide** (92) -- high demand, moderate competition\n3. **BPC-157 Stack Builder** (88) -- niche but loyal audience",
+      timestamp: "2026-04-13T15:35:00Z",
+    },
+  ],
+  t4: [
+    {
+      id: "t4-m1",
+      role: "assistant",
+      content: "**Competitor Alert: BiohackPro**\n\nThey just launched a new course at $49.99 covering tirzepatide dosing. This is a direct overlap with our tirzepatide idea.\n\n**Impact:** Market is now more crowded. Our competition score drops from 70 to 55.",
+      timestamp: "2026-04-13T09:00:00Z",
+    },
+    {
+      id: "t4-m2",
+      role: "user",
+      content: "Should we pivot or compete?",
+      timestamp: "2026-04-13T09:15:00Z",
+    },
+    {
+      id: "t4-m3",
+      role: "assistant",
+      content: "**Pivot.** Here's why:\n\n- BiohackPro has video content (can't match without showing face)\n- Their audience is already engaged\n- Better ROI to focus on retatrutide (zero competition)",
+      timestamp: "2026-04-13T09:20:00Z",
+    },
+  ],
+  t5: [
+    {
+      id: "t5-m1",
+      role: "assistant",
+      content: "I've reviewed your last **12 decisions** and found a new pattern:\n\nYou consistently prefer:\n- Products under $25 price point\n- SaaS/tool format over content format\n- Niches with <10 competitors\n\nShould I add this as a new **golden rule**?",
+      timestamp: "2026-04-12T19:00:00Z",
+    },
+    {
+      id: "t5-m2",
+      role: "user",
+      content: "Yes, add it",
+      timestamp: "2026-04-12T19:30:00Z",
+    },
+  ],
+  t6: [
+    {
+      id: "t6-m1",
+      role: "assistant",
+      content: "**BPC-157 Stack Product Viability**\n\nThe stacking protocol builder scores **88 composite**. Here's the breakdown:\n\n- Trend: 82 (stable interest)\n- Demand: 90 (high search volume)\n- Competition: 85 (few direct competitors)\n- Feasibility: 88 (easy to build)\n- Revenue: 90 ($29.99 price point viable)",
+      timestamp: "2026-04-12T13:00:00Z",
+    },
+    {
+      id: "t6-m2",
+      role: "user",
+      content: "What's the time to build?",
+      timestamp: "2026-04-12T13:30:00Z",
+    },
+    {
+      id: "t6-m3",
+      role: "assistant",
+      content: "**1-2 weeks** for MVP. A protocol builder with 5-10 preset stacks and customization. Low complexity, high perceived value.",
+      timestamp: "2026-04-12T13:35:00Z",
+    },
+  ],
+}
 
 // --- Command Hints ---
 
@@ -133,11 +232,48 @@ const commandHints = [
 // --- Main Page Component ---
 
 export default function BrainChatPage() {
+  const [threads, setThreads] = React.useState<ConversationThread[]>(mockThreads)
+  const [threadMessages, setThreadMessages] = React.useState<Record<string, ChatMessageData[]>>(messagesByThread)
   const [activeThread, setActiveThread] = React.useState("t1")
   const [inputValue, setInputValue] = React.useState("")
-  const [messages, setMessages] = React.useState<ChatMessageData[]>(mockActiveMessages)
+  const [searchQuery, setSearchQuery] = React.useState("")
+  const [messages, setMessages] = React.useState<ChatMessageData[]>(
+    messagesByThread["t1"] ?? []
+  )
   const [showCommands, setShowCommands] = React.useState(false)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    setMessages(threadMessages[activeThread] ?? [])
+  }, [activeThread, threadMessages])
+
+  const handleNewConversation = () => {
+    const newId = `t-${Date.now()}`
+    const newThread: ConversationThread = {
+      id: newId,
+      title: "New Conversation",
+      preview: "Start a new chat with Brain...",
+      timestamp: new Date().toISOString(),
+      messageCount: 0,
+    }
+    setThreads((prev) => [newThread, ...prev])
+    setThreadMessages((prev) => ({ ...prev, [newId]: [] }))
+    setActiveThread(newId)
+  }
+
+  const handleDeleteThread = (threadId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const remaining = threads.filter((t) => t.id !== threadId)
+    setThreads(remaining)
+    setThreadMessages((prev) => {
+      const updated = { ...prev }
+      delete updated[threadId]
+      return updated
+    })
+    if (activeThread === threadId) {
+      setActiveThread(remaining[0]?.id ?? "")
+    }
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -181,28 +317,39 @@ export default function BrainChatPage() {
             <Brain className="size-4 text-violet-400" />
             <h2 className="text-sm font-semibold text-foreground">Brain Chat</h2>
           </div>
-          <Button variant="ghost" size="icon-xs">
+          <Button variant="ghost" size="icon-xs" onClick={handleNewConversation}>
             <Plus className="size-3.5" />
           </Button>
         </div>
 
-        {/* New Conversation Button */}
+        {/* Search Bar */}
         <div className="px-3 py-2">
-          <Button variant="outline" size="sm" className="w-full gap-1.5 justify-start text-xs">
-            <Plus className="size-3" />
-            New Conversation
-          </Button>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 pl-8 text-xs"
+            />
+          </div>
         </div>
 
         {/* Thread List */}
         <ScrollArea className="flex-1">
           <div className="px-2 py-1 space-y-0.5">
-            {mockThreads.map((thread) => (
-              <button
+            {threads
+              .filter(
+                (t) =>
+                  t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  t.preview.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((thread) => (
+              <div
                 key={thread.id}
                 onClick={() => setActiveThread(thread.id)}
                 className={cn(
-                  "w-full rounded-lg px-3 py-2.5 text-left transition-colors",
+                  "group w-full rounded-lg px-3 py-2.5 text-left transition-colors cursor-pointer",
                   activeThread === thread.id
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
@@ -212,9 +359,13 @@ export default function BrainChatPage() {
                   <span className="text-sm font-medium truncate text-foreground">
                     {thread.title}
                   </span>
-                  <Badge variant="outline" className="text-[9px] shrink-0 tabular-nums">
-                    {thread.messageCount}
-                  </Badge>
+                  <button
+                    onClick={(e) => handleDeleteThread(thread.id, e)}
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all shrink-0"
+                    aria-label="Delete conversation"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground truncate">
                   {thread.preview}
@@ -223,7 +374,7 @@ export default function BrainChatPage() {
                   <Clock className="size-2.5" />
                   {formatThreadTime(thread.timestamp)}
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </ScrollArea>
@@ -239,11 +390,11 @@ export default function BrainChatPage() {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-foreground">
-                {mockThreads.find((t) => t.id === activeThread)?.title ?? "Chat"}
+                {threads.find((t) => t.id === activeThread)?.title ?? "Chat"}
               </h3>
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <Sparkles className="size-2.5" />
-                Brain is analyzing {mockThreads.find((t) => t.id === activeThread)?.messageCount ?? 0} messages in this thread
+                Brain is analyzing {messages.length} messages in this thread
               </p>
             </div>
           </div>
@@ -256,7 +407,7 @@ export default function BrainChatPage() {
         </div>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 px-5">
+        <ScrollArea className="flex-1 min-h-0 px-5">
           <div className="max-w-3xl mx-auto py-5 space-y-5">
             {messages.map((msg) => (
               <ChatMessage key={msg.id} message={msg} />

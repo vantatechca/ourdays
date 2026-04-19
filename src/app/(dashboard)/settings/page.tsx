@@ -262,7 +262,12 @@ function ApiKeysTab() {
                   <Eye className="size-3.5" />
                 )}
               </Button>
-              <Button variant="outline" size="sm" className="gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={() => alert(`${apiKey.name} saved successfully!`)}
+              >
                 <Save className="size-3" />
                 Save
               </Button>
@@ -315,6 +320,21 @@ function NotificationsTab() {
 }
 
 function ExportTab() {
+  const handleDownload = (label: string, format: "csv" | "json") => {
+    const filename = `${label.toLowerCase().replace(/\s+/g, "-")}.${format}`
+    const content =
+      format === "json"
+        ? JSON.stringify({ export: label, timestamp: new Date().toISOString(), data: [] }, null, 2)
+        : `export,timestamp\n${label},${new Date().toISOString()}`
+    const blob = new Blob([content], { type: format === "json" ? "application/json" : "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const exports = [
     {
       label: "Ideas",
@@ -365,11 +385,21 @@ function ExportTab() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={() => handleDownload(exp.label, "csv")}
+              >
                 <Download className="size-3" />
                 CSV
               </Button>
-              <Button variant="outline" size="sm" className="gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={() => handleDownload(exp.label, "json")}
+              >
                 <Download className="size-3" />
                 JSON
               </Button>

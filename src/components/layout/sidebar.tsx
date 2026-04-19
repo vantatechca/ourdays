@@ -102,11 +102,31 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             P
           </div>
           {!collapsed && (
-            <span className="text-base font-semibold tracking-tight text-foreground">
-              PeptideIQ
-            </span>
+            <>
+              <span className="text-base font-semibold tracking-tight text-foreground">
+                PeptideIQ
+              </span>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={onToggle}
+                className="ml-auto text-muted-foreground hover:text-foreground"
+                title="Collapse sidebar"
+              >
+                <ChevronLeft className="size-3.5" />
+              </Button>
+            </>
           )}
         </div>
+        {collapsed && (
+          <button
+            onClick={onToggle}
+            className="absolute -right-3 top-16 z-10 flex size-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm hover:bg-accent hover:text-foreground transition-colors"
+            title="Expand sidebar"
+          >
+            <ChevronRight className="size-3.5" />
+          </button>
+        )}
 
         {/* Main Navigation */}
         <nav className="flex-1 overflow-y-auto px-2 py-3">
@@ -207,19 +227,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             })}
           </ul>
 
-          {/* Collapse Toggle */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onToggle}
-            className="mt-2 w-full"
-          >
-            {collapsed ? (
-              <ChevronRight className="size-4" />
-            ) : (
-              <ChevronLeft className="size-4" />
-            )}
-          </Button>
         </div>
       </aside>
     </TooltipProvider>

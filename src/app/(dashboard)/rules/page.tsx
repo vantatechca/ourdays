@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Activity,
   RotateCcw,
+  X,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,22 +23,6 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { mockGoldenRules } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -235,104 +220,141 @@ function RuleGroup({
 }
 
 function AddRuleDialog() {
+  const [open, setOpen] = React.useState(false);
+  const [ruleText, setRuleText] = React.useState("");
+  const [ruleType, setRuleType] = React.useState("must_have");
+  const [direction, setDirection] = React.useState("boost");
   const [weight, setWeight] = React.useState([1.0]);
   const [importance, setImportance] = React.useState([0.8]);
 
+  const handleSave = () => {
+    if (!ruleText.trim()) {
+      alert("Please enter rule text");
+      return;
+    }
+    alert(`Rule saved: "${ruleText}" (${ruleType} / ${direction})`);
+    setRuleText("");
+    setRuleType("must_have");
+    setDirection("boost");
+    setWeight([1.0]);
+    setImportance([0.8]);
+    setOpen(false);
+  };
+
   return (
-    <Dialog>
-      <DialogTrigger
-        render={
-          <Button className="gap-2">
-            <Plus className="size-4" />
-            Add Rule
-          </Button>
-        }
-      />
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Golden Rule</DialogTitle>
-          <DialogDescription>
-            Define a new rule to guide idea scoring and filtering.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Button className="gap-2" onClick={() => setOpen(true)}>
+        <Plus className="size-4" />
+        Add Rule
+      </Button>
 
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label>Rule Text</Label>
-            <Input placeholder="e.g., Prefer products with recurring revenue..." />
-          </div>
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <h2 className="text-lg font-semibold">Add Golden Rule</h2>
+                <p className="text-sm text-muted-foreground">
+                  Define a new rule to guide idea scoring and filtering.
+                </p>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="p-1 rounded hover:bg-accent transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <Separator className="my-3" />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Rule Type</Label>
-              <Select defaultValue="must_have">
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="must_have">Must Have</SelectItem>
-                  <SelectItem value="must_avoid">Must Avoid</SelectItem>
-                  <SelectItem value="prefer">Prefer</SelectItem>
-                  <SelectItem value="deprioritize">Deprioritize</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>Rule Text</Label>
+                <Input
+                  placeholder="e.g., Prefer products with recurring revenue..."
+                  value={ruleText}
+                  onChange={(e) => setRuleText(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Rule Type</Label>
+                  <select
+                    value={ruleType}
+                    onChange={(e) => setRuleType(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="must_have">Must Have</option>
+                    <option value="must_avoid">Must Avoid</option>
+                    <option value="prefer">Prefer</option>
+                    <option value="deprioritize">Deprioritize</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Direction</Label>
+                  <select
+                    value={direction}
+                    onChange={(e) => setDirection(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="boost">Boost</option>
+                    <option value="penalize">Penalize</option>
+                    <option value="block">Block</option>
+                    <option value="require">Require</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Weight</Label>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {weight[0].toFixed(1)}
+                  </span>
+                </div>
+                <Slider
+                  value={weight}
+                  onValueChange={(val) => setWeight(Array.isArray(val) ? [...val] : [val])}
+                  min={0}
+                  max={2}
+                  step={0.1}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Importance</Label>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {importance[0].toFixed(1)}
+                  </span>
+                </div>
+                <Slider
+                  value={importance}
+                  onValueChange={(val) => setImportance(Array.isArray(val) ? [...val] : [val])}
+                  min={0}
+                  max={1}
+                  step={0.1}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Direction</Label>
-              <Select defaultValue="boost">
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="boost">Boost</SelectItem>
-                  <SelectItem value="penalize">Penalize</SelectItem>
-                  <SelectItem value="block">Block</SelectItem>
-                  <SelectItem value="require">Require</SelectItem>
-                </SelectContent>
-              </Select>
+            <Separator className="my-3" />
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button onClick={handleSave}>Save Rule</Button>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Weight</Label>
-              <span className="text-xs font-mono text-muted-foreground">
-                {weight[0].toFixed(1)}
-              </span>
-            </div>
-            <Slider
-              value={weight}
-              onValueChange={(val) => setWeight(Array.isArray(val) ? [...val] : [val])}
-              min={0}
-              max={2}
-              step={0.1}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Importance</Label>
-              <span className="text-xs font-mono text-muted-foreground">
-                {importance[0].toFixed(1)}
-              </span>
-            </div>
-            <Slider
-              value={importance}
-              onValueChange={(val) => setImportance(Array.isArray(val) ? [...val] : [val])}
-              min={0}
-              max={1}
-              step={0.1}
-            />
           </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline">Cancel</Button>
-          <Button>Save Rule</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      )}
+    </>
   );
 }
 
@@ -366,7 +388,15 @@ export default function RulesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() =>
+              alert(
+                "AI is analyzing your recent decisions...\n\nSuggested rules:\n• Prefer products under $25\n• Avoid video-based content\n• Boost first-mover opportunities"
+              )
+            }
+          >
             <Sparkles className="size-4 text-amber-400" />
             Suggest Rules
           </Button>

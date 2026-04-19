@@ -11,11 +11,16 @@ import {
   ChevronRight,
   BarChart3,
   Package,
+  X,
+  TrendingUp,
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { mockCompetitors } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -193,6 +198,14 @@ function CompetitorCard({
 }
 
 export default function CompetitorsPage() {
+  const [showGapAnalysis, setShowGapAnalysis] = React.useState(false);
+  const [showAddCompetitor, setShowAddCompetitor] = React.useState(false);
+  const [newCompetitor, setNewCompetitor] = React.useState({
+    name: "",
+    platform: "etsy",
+    profileUrl: "",
+  });
+
   const totalProducts = mockCompetitors.reduce(
     (sum, c) => sum + c.totalProducts,
     0
@@ -200,6 +213,16 @@ export default function CompetitorsPage() {
   const highPriority = mockCompetitors.filter(
     (c) => c.watchPriority === "high"
   ).length;
+
+  const handleAddCompetitor = () => {
+    if (!newCompetitor.name.trim()) {
+      alert("Please enter a competitor name");
+      return;
+    }
+    alert(`Competitor "${newCompetitor.name}" added successfully!`);
+    setNewCompetitor({ name: "", platform: "etsy", profileUrl: "" });
+    setShowAddCompetitor(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -215,16 +238,173 @@ export default function CompetitorsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setShowGapAnalysis(true)}
+          >
             <BarChart3 className="size-4 text-violet-400" />
             Gap Analysis
           </Button>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setShowAddCompetitor(true)}>
             <Plus className="size-4" />
             Add Competitor
           </Button>
         </div>
       </div>
+
+      {/* Gap Analysis Modal */}
+      {showGapAnalysis && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowGapAnalysis(false)}
+        >
+          <div
+            className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                <BarChart3 className="size-5 text-violet-400" />
+                Market Gap Analysis
+              </h2>
+              <button
+                onClick={() => setShowGapAnalysis(false)}
+                className="p-1 rounded hover:bg-accent transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <Separator className="mb-4" />
+            <div className="space-y-4">
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+                <div className="flex items-start gap-2">
+                  <TrendingUp className="size-4 text-emerald-400 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-emerald-400">
+                      Underserved: Retatrutide Tools
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      0 competitors have products in this space. 890% search growth. First-mover advantage available.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="size-4 text-amber-400 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-amber-400">
+                      Gap: Interactive Dosing Calculators
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Most competitors offer static PDFs. Interactive tools could capture 30% premium pricing.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3">
+                <div className="flex items-start gap-2">
+                  <TrendingUp className="size-4 text-blue-400 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-blue-400">
+                      Underpriced: BPC-157 Guides
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Current average: $14.99. Demand supports $24.99+ for comprehensive guides.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="size-4 text-red-400 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-red-400">
+                      Saturated: Generic Semaglutide Guides
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {mockCompetitors.length} competitors tracked. Avoid unless offering unique angle.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Competitor Modal */}
+      {showAddCompetitor && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowAddCompetitor(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                <Plus className="size-5" />
+                Add Competitor
+              </h2>
+              <button
+                onClick={() => setShowAddCompetitor(false)}
+                className="p-1 rounded hover:bg-accent transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <Separator className="mb-4" />
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="comp-name" className="text-xs">Name</Label>
+                <Input
+                  id="comp-name"
+                  placeholder="e.g. BiohackPro"
+                  value={newCompetitor.name}
+                  onChange={(e) => setNewCompetitor((prev) => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="comp-platform" className="text-xs">Platform</Label>
+                <select
+                  id="comp-platform"
+                  value={newCompetitor.platform}
+                  onChange={(e) => setNewCompetitor((prev) => ({ ...prev, platform: e.target.value }))}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="etsy">Etsy</option>
+                  <option value="whop">Whop</option>
+                  <option value="gumroad">Gumroad</option>
+                  <option value="shopify">Shopify</option>
+                  <option value="udemy">Udemy</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="comp-url" className="text-xs">Profile URL</Label>
+                <Input
+                  id="comp-url"
+                  placeholder="https://..."
+                  value={newCompetitor.profileUrl}
+                  onChange={(e) => setNewCompetitor((prev) => ({ ...prev, profileUrl: e.target.value }))}
+                />
+              </div>
+            </div>
+            <Separator className="my-4" />
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowAddCompetitor(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddCompetitor}>
+                Add Competitor
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Summary Stats */}
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
