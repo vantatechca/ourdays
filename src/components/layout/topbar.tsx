@@ -13,15 +13,6 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-
 interface TopbarProps {
   sidebarCollapsed: boolean
 }
@@ -390,7 +381,7 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
         </div>
 
         {/* Settings */}
-        <Button variant="ghost" size="icon" render={<Link href="/settings" />}>
+        <Button variant="ghost" size="icon" nativeButton={false} render={<Link href="/settings" />}>
           <Settings className="size-4" />
           <span className="sr-only">Settings</span>
         </Button>
