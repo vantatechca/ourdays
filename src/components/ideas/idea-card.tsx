@@ -447,6 +447,7 @@ export function IdeaCard({ idea, className }: IdeaCardProps) {
           size="icon-xs"
           className="text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
           title="Chat"
+          nativeButton={false}
           render={<Link href={`/brain-chat?idea=${idea.slug}`} />}
         >
           <MessageSquare className="size-3.5" />
@@ -468,6 +469,7 @@ export function IdeaCard({ idea, className }: IdeaCardProps) {
           variant="ghost"
           size="xs"
           className="gap-1 text-xs text-muted-foreground"
+          nativeButton={false}
           render={<Link href={`/ideas/${idea.slug}`} />}
         >
           View

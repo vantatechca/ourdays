@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { mockIdeas } from "@/lib/mock-data"
 import {
   Tooltip,
   TooltipContent,
@@ -33,6 +34,8 @@ interface NavItem {
   badge?: number
 }
 
+const newIdeasCount = mockIdeas.filter((i) => i.status === "detected").length
+
 const navItems: NavItem[] = [
   {
     label: "Dashboard",
@@ -43,7 +46,7 @@ const navItems: NavItem[] = [
     label: "Ideas",
     href: "/ideas",
     icon: Lightbulb,
-    badge: 3,
+    badge: newIdeasCount,
   },
   {
     label: "Brain Chat",
@@ -83,17 +86,25 @@ const bottomNavItems: NavItem[] = [
 interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
+  mobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
+
+  React.useEffect(() => {
+    if (onMobileClose) onMobileClose()
+  }, [pathname, onMobileClose])
 
   return (
     <TooltipProvider delay={300}>
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-30 flex flex-col border-r border-border bg-card transition-all duration-300",
-          collapsed ? "w-16" : "w-60"
+          collapsed ? "w-16" : "w-60",
+          "max-md:transform max-md:duration-300",
+          mobileOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full"
         )}
       >
         {/* Logo */}

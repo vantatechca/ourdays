@@ -10,6 +10,7 @@ import {
   Slash,
   Trash2,
   Search,
+  Menu,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -307,10 +308,26 @@ export default function BrainChatPage() {
     setShowCommands(false)
   }
 
+  const [showThreadList, setShowThreadList] = React.useState(false)
+
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden -m-6">
+    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden -m-4 md:-m-6 relative">
+      {/* Mobile overlay */}
+      {showThreadList && (
+        <div
+          className="fixed inset-0 z-10 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={() => setShowThreadList(false)}
+        />
+      )}
+
       {/* Left Sidebar -- Conversation Threads */}
-      <div className="flex w-72 shrink-0 flex-col border-r border-border bg-card/40">
+      <div
+        className={cn(
+          "flex w-72 shrink-0 flex-col border-r border-border bg-card/40",
+          "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-20 max-md:transform max-md:transition-transform",
+          showThreadList ? "max-md:translate-x-0" : "max-md:-translate-x-full"
+        )}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
@@ -347,7 +364,10 @@ export default function BrainChatPage() {
               .map((thread) => (
               <div
                 key={thread.id}
-                onClick={() => setActiveThread(thread.id)}
+                onClick={() => {
+                  setActiveThread(thread.id)
+                  setShowThreadList(false)
+                }}
                 className={cn(
                   "group w-full rounded-lg px-3 py-2.5 text-left transition-colors cursor-pointer",
                   activeThread === thread.id
@@ -385,6 +405,14 @@ export default function BrainChatPage() {
         {/* Chat Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <div className="flex items-center gap-2.5">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="md:hidden"
+              onClick={() => setShowThreadList(true)}
+            >
+              <Menu className="size-4" />
+            </Button>
             <div className="flex size-8 items-center justify-center rounded-lg bg-violet-500/15">
               <Brain className="size-4 text-violet-400" />
             </div>

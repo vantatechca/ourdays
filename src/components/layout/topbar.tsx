@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Search, Bell, Settings, Filter, X, Lightbulb, TrendingUp, Users } from "lucide-react"
+import { Search, Bell, Settings, Filter, X, Lightbulb, TrendingUp, Users, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/avatar"
 interface TopbarProps {
   sidebarCollapsed: boolean
+  onMobileMenuOpen?: () => void
 }
 
 interface Notification {
@@ -59,7 +60,7 @@ function formatNotifTime(ts: number): string {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
-export function Topbar({ sidebarCollapsed }: TopbarProps) {
+export function Topbar({ sidebarCollapsed, onMobileMenuOpen }: TopbarProps) {
   const [showNotifications, setShowNotifications] = React.useState(false)
   const [notifications, setNotifications] = React.useState<Notification[]>(initialNotifications)
   const [showFilter, setShowFilter] = React.useState(false)
@@ -129,12 +130,22 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur-sm transition-all duration-300",
-        sidebarCollapsed ? "left-16" : "left-60"
+        "fixed top-0 right-0 left-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur-sm transition-all duration-300",
+        sidebarCollapsed ? "md:left-16" : "md:left-60"
       )}
     >
+      {/* Mobile Menu Button */}
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="md:hidden"
+        onClick={onMobileMenuOpen}
+      >
+        <Menu className="size-4" />
+        <span className="sr-only">Open menu</span>
+      </Button>
       {/* Search */}
-      <div className="relative flex-1 max-w-md" ref={searchRef}>
+      <div className="relative flex-1 min-w-0 max-w-md" ref={searchRef}>
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
