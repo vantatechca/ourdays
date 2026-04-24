@@ -1,46 +1,67 @@
 import { NextRequest } from "next/server";
-
-const mockMessages = [
-  { id: "m1", threadId: "t1", role: "user", content: "What's the strongest opportunity you see today?", createdAt: "2026-04-14T11:00:00Z" },
-  { id: "m2", threadId: "t1", role: "assistant", content: "The retatrutide protocol builder is the clear standout. Searches are up 890% in 30 days, there are ZERO competitors on any platform, and r/peptides has 400+ posts this week asking about protocols. This is a textbook first-mover opportunity with breakout demand.", createdAt: "2026-04-14T11:01:00Z" },
-  { id: "m3", threadId: "t1", role: "user", content: "How does it compare to the semaglutide guide?", createdAt: "2026-04-14T11:05:00Z" },
-  { id: "m4", threadId: "t1", role: "assistant", content: "Different plays entirely. The semaglutide guide is a proven-demand gap fill — massive existing audience (4,231 Reddit mentions), only 6 Etsy competitors with weak offerings. Lower risk, lower ceiling. The retatrutide builder is higher risk (new compound, uncertain regulation) but the first-mover advantage is enormous. I'd build semaglutide first (3-5 days, ship fast) then retatrutide (2-3 weeks, bigger bet).", createdAt: "2026-04-14T11:06:00Z" },
-];
+import { prisma } from "@/lib/db";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const messages = mockMessages.filter((m) => m.threadId === id);
-  return Response.json({ data: messages.length > 0 ? messages : mockMessages });
+  try {
+    const { id } = await params;
+    const messages = await prisma.chatMessage.findMany({
+      where: { threadId: id },
+      orderBy: { createdAt: "asc" },
+    });
+    return Response.json({
+      data: messages.map((m) => ({
+        id: m.id,
+        threadId: m.threadId,
+        role: m.role as "user" | "assistant",
+        content: m.content,
+        createdAt: m.createdAt.toISOString(),
+      })),
+    });
+  } catch (error) {
+    console.error("GET messages failed:", error);
+    return Response.json({ error: "Failed to load messages" }, { status: 500 });
+  }
 }
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
   try {
+    const { id: threadId } = await params;
     const body = await request.json();
-    const userMessage = {
-      id: crypto.randomUUID(),
-      threadId: id,
-      role: "user" as const,
-      content: body.content,
-      createdAt: new Date().toISOString(),
-    };
+    const { role, content } = body as { role: "user" | "assistant"; content: string };
 
-    const assistantMessage = {
-      id: crypto.randomUUID(),
-      threadId: id,
-      role: "assistant" as const,
-      content: `I've analyzed your question about "${body.content.substring(0, 50)}...". Based on the current pipeline data and my understanding of your preferences, here's my take: This touches on a growing segment of the peptide market. Let me pull the relevant signals and give you a data-backed assessment.`,
-      createdAt: new Date().toISOString(),
-    };
+    if (!role || !content) {
+      return Response.json({ error: "role and content required" }, { status: 400 });
+    }
 
-    return Response.json({ data: [userMessage, assistantMessage] }, { status: 201 });
-  } catch {
-    return Response.json({ error: "Failed to send message" }, { status: 500 });
+    const message = await prisma.chatMessage.create({
+      data: { threadId, role, content },
+    });
+
+    await prisma.chatThread.update({
+      where: { id: threadId },
+      data: { lastMessageAt: new Date() },
+    });
+
+    return Response.json(
+      {
+        data: {
+          id: message.id,
+          threadId: message.threadId,
+          role: message.role,
+          content: message.content,
+          createdAt: message.createdAt.toISOString(),
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("POST message failed:", error);
+    return Response.json({ error: "Failed to save message" }, { status: 500 });
   }
 }

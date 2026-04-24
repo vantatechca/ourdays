@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import { User, Mail, Briefcase, Save, Camera, Trash2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,9 +14,18 @@ import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export default function ProfilePage() {
-  const [name, setName] = React.useState("Aldwane Dizon")
-  const [email, setEmail] = React.useState("vantatechca@gmail.com")
-  const [role, setRole] = React.useState("owner")
+  const { data: session } = useSession()
+  const [name, setName] = React.useState("")
+  const [email, setEmail] = React.useState("")
+  const [role, setRole] = React.useState("member")
+
+  React.useEffect(() => {
+    if (session?.user) {
+      setName(session.user.name ?? "")
+      setEmail(session.user.email ?? "")
+      setRole(session.user.role ?? "member")
+    }
+  }, [session])
   const [bio, setBio] = React.useState(
     "Building PeptideIQ — discovering peptide product opportunities through AI-powered trend analysis."
   )

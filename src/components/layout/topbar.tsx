@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { signOut, useSession } from "next-auth/react"
 import { toast } from "sonner"
 import { Search, Bell, Settings, Filter, X, Lightbulb, TrendingUp, Users, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -75,6 +76,18 @@ export function Topbar({ sidebarCollapsed, onMobileMenuOpen }: TopbarProps) {
   const searchRef = React.useRef<HTMLDivElement>(null)
   const profileRef = React.useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const { data: session } = useSession()
+
+  const userInitials = React.useMemo(() => {
+    const name = session?.user?.name ?? session?.user?.email ?? "AD"
+    return name
+      .split(/[\s@]/)
+      .filter(Boolean)
+      .map((p) => p[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase()
+  }, [session])
 
   const searchResults = React.useMemo(() => {
     if (!searchQuery.trim()) return { ideas: [], trends: [], competitors: [] }
@@ -406,7 +419,7 @@ export function Topbar({ sidebarCollapsed, onMobileMenuOpen }: TopbarProps) {
           >
             <Avatar size="sm">
               <AvatarImage src="" alt="User" />
-              <AvatarFallback>AD</AvatarFallback>
+              <AvatarFallback>{userInitials}</AvatarFallback>
             </Avatar>
           </button>
           {showProfile && (
@@ -435,9 +448,11 @@ export function Topbar({ sidebarCollapsed, onMobileMenuOpen }: TopbarProps) {
               </button>
               <div className="h-px bg-border my-1" />
               <button
-                onClick={() => {
+                onClick={async () => {
                   setShowProfile(false)
+                  await signOut({ redirect: false })
                   toast.success("Logged out successfully!")
+                  router.push("/login")
                 }}
                 className="w-full rounded-md px-2 py-1.5 text-left text-sm text-red-400 hover:bg-accent hover:text-red-300 transition-colors"
               >

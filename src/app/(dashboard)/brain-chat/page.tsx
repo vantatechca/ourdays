@@ -233,37 +233,101 @@ const commandHints = [
 // --- Main Page Component ---
 
 export default function BrainChatPage() {
-  const [threads, setThreads] = React.useState<ConversationThread[]>(mockThreads)
-  const [threadMessages, setThreadMessages] = React.useState<Record<string, ChatMessageData[]>>(messagesByThread)
-  const [activeThread, setActiveThread] = React.useState("t1")
+  const [threads, setThreads] = React.useState<ConversationThread[]>([])
+  const [threadMessages, setThreadMessages] = React.useState<Record<string, ChatMessageData[]>>({})
+  const [activeThread, setActiveThread] = React.useState<string>("")
   const [inputValue, setInputValue] = React.useState("")
   const [searchQuery, setSearchQuery] = React.useState("")
-  const [messages, setMessages] = React.useState<ChatMessageData[]>(
-    messagesByThread["t1"] ?? []
-  )
+  const [messages, setMessages] = React.useState<ChatMessageData[]>([])
   const [showCommands, setShowCommands] = React.useState(false)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
-    setMessages(threadMessages[activeThread] ?? [])
+    async function loadThreads() {
+      try {
+        const res = await fetch("/api/chat/threads")
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error)
+        const apiThreads: ConversationThread[] = json.data.map((t: {
+          id: string; title: string; lastMessageAt: string; messageCount: number;
+        }) => ({
+          id: t.id,
+          title: t.title,
+          preview: "",
+          timestamp: t.lastMessageAt,
+          messageCount: t.messageCount,
+        }))
+        setThreads(apiThreads)
+        if (apiThreads.length > 0) setActiveThread(apiThreads[0].id)
+      } catch (err) {
+        console.error("Failed to load threads:", err)
+      }
+    }
+    loadThreads()
+  }, [])
+
+  React.useEffect(() => {
+    if (!activeThread) {
+      setMessages([])
+      return
+    }
+    if (threadMessages[activeThread]) {
+      setMessages(threadMessages[activeThread])
+      return
+    }
+    async function loadMessages() {
+      try {
+        const res = await fetch(`/api/chat/threads/${activeThread}/messages`)
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error)
+        const msgs: ChatMessageData[] = json.data.map((m: {
+          id: string; role: "user" | "assistant"; content: string; createdAt: string;
+        }) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          timestamp: m.createdAt,
+        }))
+        setThreadMessages((prev) => ({ ...prev, [activeThread]: msgs }))
+        setMessages(msgs)
+      } catch (err) {
+        console.error("Failed to load messages:", err)
+      }
+    }
+    loadMessages()
   }, [activeThread, threadMessages])
 
-  const handleNewConversation = () => {
-    const newId = `t-${Date.now()}`
-    const newThread: ConversationThread = {
-      id: newId,
-      title: "New Conversation",
-      preview: "Start a new chat with Brain...",
-      timestamp: new Date().toISOString(),
-      messageCount: 0,
+  const handleNewConversation = async () => {
+    try {
+      const res = await fetch("/api/chat/threads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "New Conversation", threadType: "global" }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      const newThread: ConversationThread = {
+        id: json.data.id,
+        title: json.data.title,
+        preview: "Start a new chat with Brain...",
+        timestamp: json.data.lastMessageAt,
+        messageCount: 0,
+      }
+      setThreads((prev) => [newThread, ...prev])
+      setThreadMessages((prev) => ({ ...prev, [newThread.id]: [] }))
+      setActiveThread(newThread.id)
+    } catch (err) {
+      console.error("Failed to create thread:", err)
     }
-    setThreads((prev) => [newThread, ...prev])
-    setThreadMessages((prev) => ({ ...prev, [newId]: [] }))
-    setActiveThread(newId)
   }
 
-  const handleDeleteThread = (threadId: string, e: React.MouseEvent) => {
+  const handleDeleteThread = async (threadId: string, e: React.MouseEvent) => {
     e.stopPropagation()
+    try {
+      await fetch(`/api/chat/threads?id=${threadId}`, { method: "DELETE" })
+    } catch (err) {
+      console.error("Failed to delete thread:", err)
+    }
     const remaining = threads.filter((t) => t.id !== threadId)
     setThreads(remaining)
     setThreadMessages((prev) => {
@@ -284,17 +348,103 @@ export default function BrainChatPage() {
     scrollToBottom()
   }, [messages])
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return
-    const newMsg: ChatMessageData = {
-      id: `m-${Date.now()}`,
-      role: "user",
-      content: inputValue,
-      timestamp: new Date().toISOString(),
-    }
-    setMessages((prev) => [...prev, newMsg])
+  const [isLoading, setIsLoading] = React.useState(false)
+
+  const handleSend = async () => {
+    if (!inputValue.trim() || isLoading) return
+
+    const messageText = inputValue
     setInputValue("")
     setShowCommands(false)
+    setIsLoading(true)
+
+    try {
+      // Auto-create a thread if none exists yet
+      let threadId = activeThread
+      if (!threadId) {
+        const createRes = await fetch("/api/chat/threads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: messageText.slice(0, 40),
+            threadType: "global",
+          }),
+        })
+        const createJson = await createRes.json()
+        if (!createRes.ok) throw new Error(createJson.error)
+        threadId = createJson.data.id
+        const newThread: ConversationThread = {
+          id: createJson.data.id,
+          title: createJson.data.title,
+          preview: "",
+          timestamp: createJson.data.lastMessageAt,
+          messageCount: 0,
+        }
+        setThreads((prev) => [newThread, ...prev])
+        setThreadMessages((prev) => ({ ...prev, [newThread.id]: [] }))
+        setActiveThread(newThread.id)
+      }
+
+      // Save user message to DB
+      const userRes = await fetch(`/api/chat/threads/${threadId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "user", content: messageText }),
+      })
+      const userJson = await userRes.json()
+      if (!userRes.ok) throw new Error(userJson.error)
+
+      const userMsg: ChatMessageData = {
+        id: userJson.data.id,
+        role: "user",
+        content: userJson.data.content,
+        timestamp: userJson.data.createdAt,
+      }
+      const afterUser = [...messages, userMsg]
+      setMessages(afterUser)
+      setThreadMessages((prev) => ({ ...prev, [threadId]: afterUser }))
+
+      // Call Claude
+      const response = await fetch("/api/brain/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: messageText,
+          threadId,
+          history: messages.map((m) => ({ role: m.role, content: m.content })),
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error ?? "Failed to get response")
+
+      // Save assistant message to DB
+      const assistantRes = await fetch(`/api/chat/threads/${threadId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "assistant", content: result.data.content }),
+      })
+      const assistantJson = await assistantRes.json()
+
+      const assistantMsg: ChatMessageData = {
+        id: assistantJson.data?.id ?? result.data.id,
+        role: "assistant",
+        content: result.data.content,
+        timestamp: assistantJson.data?.createdAt ?? result.data.createdAt,
+      }
+      const finalMessages = [...afterUser, assistantMsg]
+      setMessages(finalMessages)
+      setThreadMessages((prev) => ({ ...prev, [threadId]: finalMessages }))
+    } catch (error) {
+      const errorMsg: ChatMessageData = {
+        id: `err-${Date.now()}`,
+        role: "assistant",
+        content: `Error: ${error instanceof Error ? error.message : "Something went wrong"}`,
+        timestamp: new Date().toISOString(),
+      }
+      setMessages((prev) => [...prev, errorMsg])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -491,10 +641,14 @@ export default function BrainChatPage() {
               <Button
                 size="icon"
                 onClick={handleSend}
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() || isLoading}
                 className="shrink-0 self-end"
               >
-                <Send className="size-4" />
+                {isLoading ? (
+                  <Sparkles className="size-4 animate-pulse" />
+                ) : (
+                  <Send className="size-4" />
+                )}
               </Button>
             </div>
             <div className="mt-2 flex items-center gap-2 flex-wrap">

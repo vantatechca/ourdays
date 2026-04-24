@@ -1,77 +1,103 @@
 import { NextRequest } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic();
+
+const SYSTEM_PROMPT = `You are Brain, an AI assistant for PeptideIQ — a platform that discovers and analyzes digital product opportunities in the peptide/biohacking space.
+
+Your role is to help the operator:
+- Analyze product ideas (ebooks, courses, SaaS tools, templates)
+- Evaluate trends and competitors
+- Score opportunities across dimensions (trend, demand, competition, feasibility, revenue)
+- Apply "golden rules" from user feedback patterns
+- Suggest next actions
+
+When analyzing, be specific and actionable. Reference concrete numbers (trend scores, revenue estimates, competitor counts) when relevant. Keep responses concise but substantive.
+
+Supported commands (when the user types these):
+- /trending — show top trending topics
+- /suggest — recommend top product ideas
+- /stats — show pipeline statistics
+- /deep-dive [topic] — deep analysis
+- /compare [A] vs [B] — head-to-head comparison
+- /rules — show active golden rules`;
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, threadId } = body;
+    const { message, threadId, history } = body as {
+      message: string;
+      threadId?: string;
+      history?: ChatMessage[];
+    };
 
     if (!message) {
       return Response.json({ error: "message is required" }, { status: 400 });
     }
 
-    // TODO: Replace with real Claude Sonnet API call with full context injection
-    // Context to inject: golden rules, feedback patterns, brain memory, stats, recent decisions
-    const response = {
-      id: crypto.randomUUID(),
-      threadId: threadId || crypto.randomUUID(),
-      role: "assistant" as const,
-      content: generateMockBrainResponse(message),
-      metadata: {
-        model: "claude-sonnet-4-6",
-        tokensUsed: 847,
-        contextIncluded: ["golden_rules", "feedback_patterns", "recent_decisions"],
+    const messages: Anthropic.MessageParam[] = [
+      ...(history ?? []).map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
+      { role: "user", content: message },
+    ];
+
+    const response = await client.messages.create({
+      model: "claude-opus-4-7",
+      max_tokens: 16000,
+      system: SYSTEM_PROMPT,
+      messages,
+      thinking: { type: "adaptive" },
+    });
+
+    const textContent = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === "text")
+      .map((block) => block.text)
+      .join("\n");
+
+    return Response.json({
+      data: {
+        id: response.id,
+        threadId: threadId ?? crypto.randomUUID(),
+        role: "assistant" as const,
+        content: textContent,
+        metadata: {
+          model: response.model,
+          inputTokens: response.usage.input_tokens,
+          outputTokens: response.usage.output_tokens,
+          stopReason: response.stop_reason,
+        },
+        createdAt: new Date().toISOString(),
       },
-      createdAt: new Date().toISOString(),
-    };
-
-    return Response.json({ data: response });
-  } catch {
-    return Response.json({ error: "Failed to process brain chat" }, { status: 500 });
+    });
+  } catch (error) {
+    if (error instanceof Anthropic.AuthenticationError) {
+      return Response.json(
+        { error: "Invalid Anthropic API key. Check ANTHROPIC_API_KEY in .env" },
+        { status: 401 }
+      );
+    }
+    if (error instanceof Anthropic.RateLimitError) {
+      return Response.json(
+        { error: "Rate limited. Please try again shortly." },
+        { status: 429 }
+      );
+    }
+    if (error instanceof Anthropic.APIError) {
+      return Response.json(
+        { error: `Claude API error: ${error.message}` },
+        { status: error.status ?? 500 }
+      );
+    }
+    return Response.json(
+      { error: "Failed to process brain chat" },
+      { status: 500 }
+    );
   }
-}
-
-function generateMockBrainResponse(message: string): string {
-  const lower = message.toLowerCase();
-
-  if (lower.includes("/trending") || lower.includes("trending")) {
-    return `Here's what's trending right now in the peptide space:
-
-1. **Retatrutide** — BREAKOUT (+890% in 30 days). Zero digital products exist. This is your strongest first-mover window.
-2. **Semaglutide dosing** — Still climbing (+45%). 2,847 Reddit questions this month about reconstitution alone.
-3. **BPC-157 + TB-500 stacking** — Steady growth (+32%). The most-asked-about peptide combination.
-4. **GHK-Cu skincare** — Crossover appeal emerging (+18%). Tapping into the broader skincare audience.
-
-My recommendation: Ship the semaglutide guide this week (3-5 day build), then pivot to the retatrutide builder before anyone else gets there.`;
-  }
-
-  if (lower.includes("/suggest") || lower.includes("recommend")) {
-    return `Based on your golden rules and approval patterns, here are my top 5 right now:
-
-1. **Retatrutide Protocol Builder** (Score: 91) — First-mover, breakout trend, recurring revenue via subscription
-2. **Semaglutide Dosing Guide** (Score: 92) — Massive demand gap, low build effort, ship this week
-3. **BPC-157 + TB-500 Stack Builder** (Score: 88) — Zero competitors, SaaS model, matches your preference for tools
-4. **Peptide Cycle Planner** (Score: 83) — High ceiling SaaS play, addresses #1 pain point
-5. **GHK-Cu Skincare Guide** (Score: 76) — Lower risk, proven model, new audience expansion
-
-I notice you consistently approve SaaS/tool products over ebooks (88% approval rate for tools vs 45% for ebooks). Should I add a stronger weight to the "prefer tools" golden rule?`;
-  }
-
-  if (lower.includes("/stats")) {
-    return `Pipeline Stats:
-- **47** total ideas in pipeline
-- **12** pending review (5 scored above 80)
-- **8** approved (3 in active build)
-- **15** declined
-- **4** incubating
-- **9** new ideas this week (down from 14 last week — brain is filtering better)
-- **Average score**: 71.3 (up from 64.8 last week)
-- **Top source**: Reddit (contributing 58% of signals)
-- **Daily API cost**: $3.42 (within $5 budget)`;
-  }
-
-  return `I've analyzed your message. Based on the current pipeline of 47 ideas, your 8 golden rules, and 40 learned preferences, here's what I think:
-
-The peptide digital product space continues to show strong signals, particularly around GLP-1 compounds (semaglutide, tirzepatide, retatrutide). Your approval patterns show a clear preference for SaaS tools with recurring revenue over one-time info products.
-
-What specific aspect would you like me to dig deeper into? I can run a /deep-dive on any topic, /compare ideas side by side, or give you my /suggest top picks.`;
 }

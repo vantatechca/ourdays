@@ -1,29 +1,75 @@
 import { NextRequest } from "next/server";
-
-const mockThreads = [
-  { id: "t1", threadType: "global", title: "Daily Strategy Discussion", lastMessageAt: "2026-04-14T12:00:00Z", messageCount: 12 },
-  { id: "t2", threadType: "idea_specific", title: "Semaglutide Guide Deep Dive", ideaId: "1", lastMessageAt: "2026-04-14T10:00:00Z", messageCount: 8 },
-  { id: "t3", threadType: "strategy", title: "Q2 Product Launch Order", lastMessageAt: "2026-04-13T16:00:00Z", messageCount: 5 },
-  { id: "t4", threadType: "explore", title: "Retatrutide Market Analysis", lastMessageAt: "2026-04-13T14:00:00Z", messageCount: 7 },
-];
+import { prisma } from "@/lib/db";
+import { getDefaultUserId } from "@/lib/default-user";
 
 export async function GET() {
-  return Response.json({ data: mockThreads });
+  try {
+    const userId = await getDefaultUserId();
+    const threads = await prisma.chatThread.findMany({
+      where: { userId },
+      orderBy: { lastMessageAt: "desc" },
+      include: { _count: { select: { messages: true } } },
+    });
+    return Response.json({
+      data: threads.map((t) => ({
+        id: t.id,
+        threadType: t.threadType,
+        title: t.title,
+        ideaId: t.ideaId,
+        lastMessageAt: t.lastMessageAt.toISOString(),
+        createdAt: t.createdAt.toISOString(),
+        messageCount: t._count.messages,
+      })),
+    });
+  } catch (error) {
+    console.error("GET /api/chat/threads failed:", error);
+    return Response.json({ error: "Failed to load threads" }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const newThread = {
-      id: crypto.randomUUID(),
-      threadType: body.threadType || "global",
-      title: body.title || "New Conversation",
-      ideaId: body.ideaId || null,
-      lastMessageAt: new Date().toISOString(),
-      messageCount: 0,
-    };
-    return Response.json({ data: newThread }, { status: 201 });
-  } catch {
+    const userId = await getDefaultUserId();
+    const thread = await prisma.chatThread.create({
+      data: {
+        userId,
+        threadType: body.threadType ?? "global",
+        title: body.title ?? "New Conversation",
+        ideaId: body.ideaId ?? null,
+      },
+    });
+    return Response.json(
+      {
+        data: {
+          id: thread.id,
+          threadType: thread.threadType,
+          title: thread.title,
+          ideaId: thread.ideaId,
+          lastMessageAt: thread.lastMessageAt.toISOString(),
+          createdAt: thread.createdAt.toISOString(),
+          messageCount: 0,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("POST /api/chat/threads failed:", error);
     return Response.json({ error: "Failed to create thread" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    if (!id) {
+      return Response.json({ error: "thread id required" }, { status: 400 });
+    }
+    await prisma.chatThread.delete({ where: { id } });
+    return Response.json({ success: true });
+  } catch (error) {
+    console.error("DELETE /api/chat/threads failed:", error);
+    return Response.json({ error: "Failed to delete thread" }, { status: 500 });
   }
 }
