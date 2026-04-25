@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { requireUserId, UnauthorizedError } from "@/lib/session";
 
 const client = new Anthropic();
 
@@ -29,6 +30,8 @@ interface ChatMessage {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireUserId();
+
     const body = await request.json();
     const { message, threadId, history } = body as {
       message: string;
@@ -77,6 +80,9 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
     if (error instanceof Anthropic.AuthenticationError) {
       return Response.json(
         { error: "Invalid Anthropic API key. Check ANTHROPIC_API_KEY in .env" },

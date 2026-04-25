@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { getDefaultUserId } from "@/lib/default-user";
+import { requireUserId, UnauthorizedError } from "@/lib/session";
 
 export async function GET() {
   try {
-    const userId = await getDefaultUserId();
+    const userId = await requireUserId();
     const threads = await prisma.chatThread.findMany({
       where: { userId },
       orderBy: { lastMessageAt: "desc" },
@@ -22,6 +22,9 @@ export async function GET() {
       })),
     });
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
     console.error("GET /api/chat/threads failed:", error);
     return Response.json({ error: "Failed to load threads" }, { status: 500 });
   }
@@ -29,8 +32,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await requireUserId();
     const body = await request.json();
-    const userId = await getDefaultUserId();
     const thread = await prisma.chatThread.create({
       data: {
         userId,
@@ -54,6 +57,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
     console.error("POST /api/chat/threads failed:", error);
     return Response.json({ error: "Failed to create thread" }, { status: 500 });
   }
@@ -61,14 +67,24 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const userId = await requireUserId();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     if (!id) {
       return Response.json({ error: "thread id required" }, { status: 400 });
     }
+
+    const thread = await prisma.chatThread.findUnique({ where: { id } });
+    if (!thread || thread.userId !== userId) {
+      return Response.json({ error: "Not found" }, { status: 404 });
+    }
+
     await prisma.chatThread.delete({ where: { id } });
     return Response.json({ success: true });
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
     console.error("DELETE /api/chat/threads failed:", error);
     return Response.json({ error: "Failed to delete thread" }, { status: 500 });
   }

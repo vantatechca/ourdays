@@ -14,26 +14,60 @@ import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export default function ProfilePage() {
-  const { data: session } = useSession()
+  const { data: session, update: updateSession } = useSession()
   const [name, setName] = React.useState("")
   const [email, setEmail] = React.useState("")
   const [role, setRole] = React.useState("member")
-
-  React.useEffect(() => {
-    if (session?.user) {
-      setName(session.user.name ?? "")
-      setEmail(session.user.email ?? "")
-      setRole(session.user.role ?? "member")
-    }
-  }, [session])
-  const [bio, setBio] = React.useState(
-    "Building PeptideIQ — discovering peptide product opportunities through AI-powered trend analysis."
-  )
+  const [bio, setBio] = React.useState("")
   const [avatarUrl, setAvatarUrl] = React.useState<string>("")
+  const [isSaving, setIsSaving] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
-  const handleSave = () => {
-    toast.success("Profile updated successfully!")
+  React.useEffect(() => {
+    async function loadProfile() {
+      try {
+        const res = await fetch("/api/user/profile")
+        if (!res.ok) return
+        const json = await res.json()
+        const user = json.data
+        setName(user.name ?? "")
+        setEmail(user.email ?? "")
+        setRole(user.role ?? "member")
+        const settings = user.settings as { bio?: string; avatarUrl?: string } | null
+        setBio(settings?.bio ?? "")
+        setAvatarUrl(settings?.avatarUrl ?? "")
+      } catch (err) {
+        console.error("Failed to load profile:", err)
+      }
+    }
+    loadProfile()
+  }, [])
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          settings: { bio, avatarUrl },
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toast.error(json.error ?? "Failed to update profile")
+        return
+      }
+      await updateSession({ name, email })
+      toast.success("Profile updated successfully!")
+    } catch (err) {
+      console.error("Failed to save profile:", err)
+      toast.error("Failed to save profile")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,9 +281,9 @@ export default function ProfilePage() {
         <Button variant="outline" onClick={() => window.location.reload()}>
           Cancel
         </Button>
-        <Button onClick={handleSave} className="gap-2">
+        <Button onClick={handleSave} className="gap-2" disabled={isSaving}>
           <Save className="size-4" />
-          Save Changes
+          {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </div>

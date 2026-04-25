@@ -1,12 +1,27 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUserId, UnauthorizedError } from "@/lib/session";
+
+async function verifyThreadOwnership(threadId: string, userId: string) {
+  const thread = await prisma.chatThread.findUnique({ where: { id: threadId } });
+  if (!thread || thread.userId !== userId) {
+    return null;
+  }
+  return thread;
+}
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await requireUserId();
     const { id } = await params;
+    const thread = await verifyThreadOwnership(id, userId);
+    if (!thread) {
+      return Response.json({ error: "Thread not found" }, { status: 404 });
+    }
+
     const messages = await prisma.chatMessage.findMany({
       where: { threadId: id },
       orderBy: { createdAt: "asc" },
@@ -21,6 +36,9 @@ export async function GET(
       })),
     });
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
     console.error("GET messages failed:", error);
     return Response.json({ error: "Failed to load messages" }, { status: 500 });
   }
@@ -31,7 +49,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await requireUserId();
     const { id: threadId } = await params;
+    const thread = await verifyThreadOwnership(threadId, userId);
+    if (!thread) {
+      return Response.json({ error: "Thread not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const { role, content } = body as { role: "user" | "assistant"; content: string };
 
@@ -61,6 +85,9 @@ export async function POST(
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
     console.error("POST message failed:", error);
     return Response.json({ error: "Failed to save message" }, { status: 500 });
   }

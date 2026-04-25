@@ -1,0 +1,22 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+export async function getCurrentUserId(): Promise<string | null> {
+  const session = await getServerSession(authOptions);
+  return session?.user?.id ?? null;
+}
+
+export async function requireUserId(): Promise<string> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new UnauthorizedError("Authentication required");
+  }
+  return userId;
+}
+
+export class UnauthorizedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
